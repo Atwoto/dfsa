@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DFSA Service/License Recommender & Fee Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            scroll-behavior: smooth;
+        }
+        .step-active {
+            border-color: #2563eb; /* Darker Blue */
+            color: #2563eb;
+        }
+        .step-inactive {
+            border-color: #9ca3af;
+            color: #4b5563;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .loader {
+            border-top-color: #3498db;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #printable-summary, #printable-summary * {
+                visibility: visible;
+            }
+            #printable-summary {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="container mx-auto px-4 py-8 md:py-12">
+        <!-- Header -->
+        <header class="text-center mb-10 no-print">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-900">DFSA Service & License Recommender</h1>
+            <p class="mt-2 text-md md:text-lg text-gray-600">An intelligent tool to guide you to the right license and estimate your fees.</p>
+        </header>
+
+        <!-- Stepper -->
+        <div class="w-full max-w-4xl mx-auto mb-10 no-print">
+            <div class="flex items-center justify-center">
+                <div id="step-1-indicator" class="step-active flex items-center">
+                    <div class="w-8 h-8 rounded-full border-2 flex items-center justify-center font-bold">1</div>
+                    <p class="ml-2 font-semibold">Business Area</p>
+                </div>
+                <div class="flex-auto border-t-2 transition duration-500 ease-in-out border-gray-300 mx-4"></div>
+                <div id="step-2-indicator" class="step-inactive flex items-center">
+                    <div class="w-8 h-8 rounded-full border-2 flex items-center justify-center font-bold">2</div>
+                    <p class="ml-2 font-semibold">Operational Details</p>
+                </div>
+                <div class="flex-auto border-t-2 transition duration-500 ease-in-out border-gray-300 mx-4"></div>
+                <div id="step-3-indicator" class="step-inactive flex items-center">
+                    <div class="w-8 h-8 rounded-full border-2 flex items-center justify-center font-bold">3</div>
+                    <p class="ml-2 font-semibold">Recommendation</p>
+                </div>
+            </div>
+        </div>
+
+
+        <main id="recommender-app" class="w-full max-w-4xl mx-auto bg-white p-6 md:p-8 rounded-xl shadow-lg">
+
+            <!-- Step 1: Business Activity -->
+            <div id="step-1" class="step-content fade-in">
+                <h2 class="text-2xl font-semibold mb-6 text-gray-800">1. What is your primary business area?</h2>
+                <div class="space-y-4">
+                    <select id="business-activity" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                        <option value="">Select an area...</option>
+                        <option value="asset_management">Asset Management</option>
+                        <option value="wealth_management">Wealth Management</option>
+                        <option value="banking">Banking Services</option>
+                        <option value="brokerage">Brokerage & Dealing</option>
+                        <option value="advisory">Corporate & Financial Advisory</option>
+                        <option value="crowdfunding">Crowdfunding Platform</option>
+                        <option value="fintech">Fintech & Innovation</option>
+                    </select>
+                </div>
+                <div class="mt-8 text-right">
+                    <button onclick="nextStep(1)" class="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-700 transition shadow-md">Next &rarr;</button>
+                </div>
+            </div>
+
+            <!-- Step 2: Specific Details -->
+            <div id="step-2" class="step-content hidden fade-in">
+                <h2 class="text-2xl font-semibold mb-6 text-gray-800">2. Provide more details about your operation</h2>
+                <div id="details-form" class="space-y-6">
+                    <!-- Dynamic questions will be injected here -->
+                </div>
+                <div class="mt-8 flex justify-between">
+                    <button onclick="prevStep(2)" class="bg-gray-300 text-gray-800 font-bold py-2 px-6 rounded-lg hover:bg-gray-400 transition">&larr; Back</button>
+                    <button onclick="getRecommendation()" class="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-700 transition shadow-md">Calculate Recommendation</button>
+                </div>
+            </div>
+
+            <!-- Step 3: Recommendation & Fees -->
+            <div id="step-3" class="step-content hidden fade-in">
+                <div id="loading-spinner" class="text-center py-12 hidden">
+                    <div class="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-24 w-24 mx-auto"></div>
+                    <p class="mt-4 text-lg font-semibold text-gray-600">Analyzing your inputs and calculating fees...</p>
+                </div>
+
+                <div id="results-container">
+                    <!-- Printable Summary -->
+                    <div id="printable-summary">
+                        <h2 class="text-2xl md:text-3xl font-bold mb-6 text-gray-800 text-center">Your Recommendation Summary</h2>
+                        <div id="recommendation-result" class="mb-6"></div>
+                        <div id="fee-calculator-result" class="mb-6"></div>
+                        <div id="regulatory-info-result" class="mb-6"></div>
+                         <p class="text-xs text-gray-500 mt-4 text-center">*This summary is for guidance purposes only and does not constitute formal advice. All details are subject to a formal application and DFSA confirmation.</p>
+                    </div>
+
+                    <div class="mt-8 text-center no-print">
+                         <button onclick="printSummary()" class="bg-green-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-green-700 transition shadow-md mr-4">Print Summary</button>
+                         <button onclick="startOver()" class="bg-gray-700 text-white font-bold py-3 px-8 rounded-lg hover:bg-gray-800 transition shadow-md">Start Over</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+        <footer class="text-center mt-8 no-print">
+            <p class="text-sm text-gray-500">For formal consultation, please contact the DFSA directly. This tool provides preliminary guidance based on the information you provide.</p>
+        </footer>
+    </div>
+
+    <script>
+        let currentStep = 1;
+        const userSelections = {};
+
+        // --- ENHANCED DUMMY DATA & RULES ---
+        const licenseRules = {
+            asset_management: {
+                questions: [
+                    { id: 'client_type', text: 'Who are your target clients?', type: 'select', options: ['Retail', 'Professional', 'Market Counterparty'] },
+                    { id: 'aum', text: 'What is your anticipated Assets Under Management (AUM) in USD?', type: 'number', placeholder: 'e.g., 50000000' },
+                    { id: 'discretionary', text: 'Will you have discretionary management powers?', type: 'select', options: ['Yes', 'No'] }
+                ],
+                getLicense: (answers) => {
+                    if (answers.client_type === 'retail') {
+                        return { name: 'Category 3C License - Asset Management (Retail)', category: 'Cat 3C', regulatory: 'Requires higher capital, stringent conduct of business rules for retail client protection, mandatory participation in the Employee Compensation Scheme.' };
+                    }
+                    if (parseInt(answers.aum) > 500000000) {
+                        return { name: 'Category 1 License - Full-Scope Asset Management', category: 'Cat 1', regulatory: 'Highest capital requirements. Broad permissions for dealing and managing assets. Subject to most comprehensive reporting standards.' };
+                    }
+                    return { name: 'Category 2 License - Asset Management (Professional Clients)', category: 'Cat 2', regulatory: 'Standard capital requirements for professional-only firms. Must have robust systems for client classification and risk management.' };
+                }
+            },
+            wealth_management: {
+                 questions: [
+                    { id: 'client_type', text: 'Who are your target clients?', type: 'select', options: ['High Net Worth Individuals', 'Family Offices', 'Retail'] },
+                    { id: 'service_scope', text: 'Will your service include financial planning and advisory?', type: 'select', options: ['Yes', 'No'] },
+                    { id: 'custody', text: 'Will you arrange custody for client assets?', type: 'select', options: ['Yes', 'No'] }
+                ],
+                getLicense: (answers) => {
+                     if (answers.custody === 'yes') {
+                         return { name: 'Category 3A License - Wealth Management with Custody Arrangements', category: 'Cat 3A', regulatory: 'Strict rules on appointing and overseeing custodians. Client money and asset rules (CASS) apply. Requires specific compliance monitoring.' };
+                    }
+                    return { name: 'Category 4A License - Wealth Management (Advisory)', category: 'Cat 4A', regulatory: 'Focus on suitability and appropriateness of advice. Lower capital requirements than firms holding client assets. Clear disclosure of fees is mandatory.' };
+                }
+            },
+            banking: {
+                questions: [
+                    { id: 'service_type', text: 'What type of banking service will you provide?', type: 'select', options: ['Accepting Deposits', 'Providing Credit', 'Both'] },
+                    { id: 'capital_level', text: 'What is your planned initial capital in USD?', type: 'number', placeholder: 'e.g., 10000000' }
+                ],
+                getLicense: (answers) => {
+                    if (parseInt(answers.capital_level) >= 50000000 && answers.service_type === 'both') {
+                        return { name: 'Category 1 License - Full Service Wholesale Bank', category: 'Cat 1', regulatory: 'Subject to Basel III capital and liquidity requirements. Requires a Recovery and Resolution Plan. Strict corporate governance standards.' };
+                    }
+                    return { name: 'Category 4A License - Restricted Deposit Taker', category: 'Cat 4A', regulatory: 'Permissions are limited. Cannot accept deposits from retail clients. Simpler capital and reporting requirements than a full bank.' };
+                }
+            },
+            brokerage: {
+                questions: [
+                    { id: 'dealing_capacity', text: 'Will you be dealing on own account (Principal) or only for clients (Agent)?', type: 'select', options: ['Principal', 'Agent', 'Both'] },
+                    { id: 'client_money', text: 'Will you be holding or controlling client money?', type: 'select', options: ['Yes', 'No'] }
+                ],
+                getLicense: (answers) => {
+                    if (answers.dealing_capacity === 'principal' || answers.dealing_capacity === 'both') {
+                        return { name: 'Category 2 License - Principal Dealer & Broker', category: 'Cat 2', regulatory: 'Higher capital requirements due to principal risk. Must have robust risk management systems for market and counterparty risk.' };
+                    }
+                    if (answers.client_money === 'yes') {
+                        return { name: 'Category 2 License - Matched Principal Broker (Holding Client Money)', category: 'Cat 2', regulatory: 'Full CASS rules apply. Requires daily client money reconciliations and an annual CASS audit.' };
+                    }
+                    return { name: 'Category 3A License - Agent Broker (No Client Money)', category: 'Cat 3A', regulatory: 'Lower capital requirements. CASS rules do not apply, but must have clear procedures to ensure no client money is held.' };
+                }
+            },
+            crowdfunding: {
+                questions: [
+                    { id: 'model', text: 'What is your crowdfunding model?', type: 'select', options: ['Investment-based', 'Loan-based'] },
+                    { id: 'investor_type', text: 'Who can invest on your platform?', type: 'select', options: ['Retail', 'Professional Clients Only'] }
+                ],
+                getLicense: (answers) => {
+                     return { name: 'Category 4A License - Operating a Crowdfunding Platform', category: 'Cat 4A', regulatory: 'Specific rules for platform operators. Includes requirements for due diligence on fundraisers, risk warnings to investors, and managing conflicts of interest.' };
+                }
+            },
+            fintech: {
+                questions: [
+                    { id: 'fintech_stage', text: 'What is the stage of your FinTech innovation?', type: 'select', options: ['Concept/Idea', 'Ready for Testing', 'Ready for Market'] },
+                ],
+                getLicense: (answers) => {
+                    if(answers.fintech_stage === 'ready_for_testing'){
+                        return { name: 'Innovation Testing License (ITL)', category: 'Fintech', regulatory: 'Operates in a restricted test environment for 6-12 months. Requires a clear test plan, client disclosures, and an exit strategy. Fees are subsidized.' };
+                    }
+                    return { name: 'Standard DFSA License', category: 'Varies', regulatory: 'Once market-ready, a full license relevant to the underlying financial activity (e.g., advisory, brokerage) is required. The ITL provides a path to this.' };
+                }
+            },
+            advisory: {
+                 questions: [
+                    { id: 'advisory_type', text: 'What is the nature of your advisory service?', type: 'select', options: ['Financial Advisory', 'Corporate Finance Advisory'] },
+                    { id: 'arranging_deals', text: 'Will you be arranging deals in investments?', type: 'select', options: ['Yes', 'No'] }
+                ],
+                getLicense: (answers) => {
+                    if (answers.arranging_deals === 'yes') {
+                         return { name: 'Category 4A License - Advisory & Arranging', category: 'Cat 4A', regulatory: 'Must distinguish between advising and arranging activities. Subject to rules on inducements and conflicts of interest.' };
+                    }
+                    return { name: 'Category 4A License - Advisory Only', category: 'Cat 4A', regulatory: 'Primary focus on providing suitable advice. Lower risk profile and capital requirements. Record-keeping for advice given is critical.' };
+                }
+            }
+        };
+
+        const feeSchedule = {
+            'Cat 1': { application: 50000, annual_base: 50000, variable_fee_rate: 0.0001, variable_on: 'capital_level' },
+            'Cat 2': { application: 25000, annual_base: 25000 },
+            'Cat 3A': { application: 15000, annual_base: 15000 },
+            'Cat 3C': { application: 20000, annual_base: 20000, variable_fee_rate: 0.00005, variable_on: 'aum' },
+            'Cat 4A': { application: 10000, annual_base: 10000 },
+            'Fintech': { application: 2000, annual_base: 5000 },
+            'Varies': { application: 0, annual_base: 0 },
+            'default': { application: 0, annual_base: 0 }
+        };
+
+        function nextStep(step) {
+            if (step === 1) {
+                const activity = document.getElementById('business-activity').value;
+                if (!activity) {
+                    // Using a custom modal/alert would be better in a final product
+                    alert('Please select a business area.');
+                    return;
+                }
+                userSelections.activity = activity;
+                populateDetailQuestions(activity);
+            }
+
+            document.getElementById(`step-${step}`).classList.add('hidden');
+            document.getElementById(`step-${step + 1}`).classList.remove('hidden');
+            updateStepper(step + 1);
+            currentStep = step + 1;
+        }
+
+        function prevStep(step) {
+            document.getElementById(`step-${step}`).classList.add('hidden');
+            document.getElementById(`step-${step - 1}`).classList.remove('hidden');
+            updateStepper(step - 1);
+            currentStep = step - 1;
+        }
+
+        function updateStepper(step) {
+            for (let i = 1; i <= 3; i++) {
+                const indicator = document.getElementById(`step-${i}-indicator`);
+                if (i === step) {
+                    indicator.classList.remove('step-inactive');
+                    indicator.classList.add('step-active');
+                } else {
+                    indicator.classList.remove('step-active');
+                    indicator.classList.add('step-inactive');
+                }
+            }
+        }
+
+        function populateDetailQuestions(activity) {
+            const formContainer = document.getElementById('details-form');
+            formContainer.innerHTML = '';
+            const rule = licenseRules[activity];
+
+            if (rule && rule.questions) {
+                rule.questions.forEach(q => {
+                    let inputHtml = '';
+                    const value = userSelections[q.id] || '';
+                    if (q.type === 'select') {
+                        const optionsHtml = q.options.map(opt => `<option value="${opt.replace(/[\s/]+/g, '_').toLowerCase()}" ${value === opt.replace(/[\s/]+/g, '_').toLowerCase() ? 'selected' : ''}>${opt}</option>`).join('');
+                        inputHtml = `<select id="${q.id}" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"><option value="">Select...</option>${optionsHtml}</select>`;
+                    } else if (q.type === 'number') {
+                        inputHtml = `<input type="number" id="${q.id}" value="${value}" placeholder="${q.placeholder}" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">`;
+                    }
+
+                    formContainer.innerHTML += `
+                        <div class="fade-in">
+                            <label for="${q.id}" class="block text-md font-medium text-gray-700 mb-2">${q.text}</label>
+                            ${inputHtml}
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        function getRecommendation() {
+            const activity = userSelections.activity;
+            const rule = licenseRules[activity];
+            const answers = {};
+            let allAnswered = true;
+
+            rule.questions.forEach(q => {
+                const element = document.getElementById(q.id);
+                if (!element.value) allAnswered = false;
+                answers[q.id] = element.value;
+                userSelections[q.id] = element.value; // Save for back/forward state
+            });
+
+            if (!allAnswered) {
+                alert('Please answer all questions to get a recommendation.');
+                return;
+            }
+            
+            document.getElementById('step-2').classList.add('hidden');
+            document.getElementById('step-3').classList.remove('hidden');
+            updateStepper(3);
+            currentStep = 3;
+
+            const loadingSpinner = document.getElementById('loading-spinner');
+            const resultsContainer = document.getElementById('results-container');
+            loadingSpinner.classList.remove('hidden');
+            resultsContainer.classList.add('hidden');
+
+            // Simulate a delay for dramatic effect in a presentation
+            setTimeout(() => {
+                const license = rule.getLicense(answers);
+                const fees = calculateFees(license.category, answers);
+
+                displayRecommendation(license, fees);
+                loadingSpinner.classList.add('hidden');
+                resultsContainer.classList.remove('hidden');
+                window.scrollTo(0, 0);
+            }, 1500);
+        }
+
+        function calculateFees(category, answers) {
+            const schedule = feeSchedule[category] || feeSchedule['default'];
+            let annualFee = schedule.annual_base;
+            let feeExplanation = `Base annual fee.`;
+
+            if (schedule.variable_fee_rate && schedule.variable_on && answers[schedule.variable_on]) {
+                const variableAmount = parseInt(answers[schedule.variable_on]);
+                const variableFee = variableAmount * schedule.variable_fee_rate;
+                annualFee += variableFee;
+                feeExplanation = `Base fee of $${schedule.annual_base.toLocaleString()} + variable fee of $${variableFee.toLocaleString()} (based on ${schedule.variable_on.replace('_', ' ')}).`;
+            }
+            
+            return {
+                application: schedule.application,
+                annual: annualFee,
+                explanation: feeExplanation
+            };
+        }
+
+        function displayRecommendation(license, fees) {
+            const recommendationDiv = document.getElementById('recommendation-result');
+            recommendationDiv.innerHTML = `
+                <div class="bg-blue-50 p-6 rounded-lg border border-blue-200">
+                    <h3 class="text-xl font-bold text-blue-800 mb-2">Recommended License</h3>
+                    <p class="text-2xl font-semibold text-blue-900">${license.name}</p>
+                    ${license.category ? `<p class="text-md text-blue-700 mt-1">DFSA Category: <strong>${license.category}</strong></p>` : ''}
+                </div>
+            `;
+
+            const feeDiv = document.getElementById('fee-calculator-result');
+            feeDiv.innerHTML = `
+                 <div class="bg-green-50 p-6 rounded-lg border border-green-200">
+                    <h3 class="text-xl font-bold text-green-800 mb-2">Estimated Fees (USD)</h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <p class="text-lg text-green-700">Application Fee:</p>
+                            <p class="text-2xl font-bold text-green-900">$${fees.application.toLocaleString()}</p>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <p class="text-lg text-green-700">Estimated Annual Fee:</p>
+                            <p class="text-2xl font-bold text-green-900">$${fees.annual.toLocaleString()}</p>
+                        </div>
+                         <p class="text-xs text-gray-500 text-right">${fees.explanation}</p>
+                    </div>
+                    <hr class="my-4 border-green-200">
+                    <div class="flex justify-between items-center font-bold">
+                        <p class="text-lg text-green-800">Total Estimated First Year Cost:</p>
+                        <p class="text-2xl text-green-900">$${(fees.application + fees.annual).toLocaleString()}</p>
+                    </div>
+                </div>
+            `;
+            
+            const regulatoryDiv = document.getElementById('regulatory-info-result');
+            regulatoryDiv.innerHTML = `
+                <div class="bg-yellow-50 p-6 rounded-lg border border-yellow-200">
+                    <h3 class="text-xl font-bold text-yellow-800 mb-2">Key Regulatory Considerations</h3>
+                    <p class="text-md text-yellow-900">${license.regulatory || 'General regulatory requirements apply. Please consult the DFSA rulebook.'}</p>
+                </div>
+            `;
+        }
+        
+        function printSummary() {
+            window.print();
+        }
+
+        function startOver() {
+            // Reset user selections object
+            for (const key in userSelections) {
+                delete userSelections[key];
+            }
+            document.getElementById('step-3').classList.add('hidden');
+            document.getElementById('step-1').classList.remove('hidden');
+            document.getElementById('business-activity').value = '';
+            updateStepper(1);
+            currentStep = 1;
+        }
+
+    </script>
+
+</body>
+</html>
