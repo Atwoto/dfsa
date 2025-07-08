@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>10 Key Points Assessment Form</title>
     <style>
-        /* Basic Styling for the Form */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             margin: 0;
@@ -98,8 +97,78 @@
         <div class="form-grid">
             <div><label for="p2_markets">Target Markets</label><input type="text" id="p2_markets" value="HNW clients"></div>
             <div><label for="p2_geo_scope">Geographic Scope</label><input type="text" id="p2_geo_scope" value="the GCC"></div>
+             <div><label for="p2_channels">Delivery Channels</label><input type="text" id="p2_channels" value="face-to-face meetings"></div>
         </div>
         <div class="output-section" id="output-2"></div>
+    </div>
+
+    <div class="assessment-point">
+        <h2>3. Who Controls</h2>
+        <div class="form-grid">
+            <div><label for="p3_structure">Ownership Structure</label><input type="text" id="p3_structure" value="wholly owned by a holding company"></div>
+            <div><label for="p3_parent_name">Parent Company Name</label><input type="text" id="p3_parent_name" value="XYZ Holdings Ltd."></div>
+            <div><label for="p3_parent_jurisdiction">Jurisdiction of Parent</label><input type="text" id="p3_parent_jurisdiction" value="the Cayman Islands"></div>
+            <div><label for="p3_controller_name">Primary Controller Name</label><input type="text" id="p3_controller_name" value="a single individual shareholder"></div>
+            <div><label for="p3_controller_perc">Primary Controller Percentage</label><input type="text" id="p3_controller_perc" value="100%"></div>
+        </div>
+        <div class="output-section" id="output-3"></div>
+    </div>
+
+    <div class="assessment-point">
+        <h2>4. Who will run the business?</h2>
+        <div class="form-grid">
+            <div><label for="p4_key_individuals">Key Individuals</label><input type="text" id="p4_key_individuals" value="Mr. John Doe (CEO)"></div>
+            <div><label for="p4_experience">Experience Summary</label><input type="text" id="p4_experience" value="20+ years of experience"></div>
+        </div>
+        <div class="output-section" id="output-4"></div>
+    </div>
+
+    <div class="assessment-point">
+        <h2>5. Background checks/other regulators</h2>
+        <div class="form-grid">
+            <div><label for="p5_adverse_history">Adverse History (leave blank if none)</label><input type="text" id="p5_adverse_history"></div>
+            <div><label for="p5_previous_reg">Previous Regulators</label><input type="text" id="p5_previous_reg" value="FCA (UK)"></div>
+        </div>
+        <div class="output-section" id="output-5"></div>
+    </div>
+
+    <div class="assessment-point">
+        <h2>6. Systems and Controls</h2>
+        <div><label for="p6_systems">Systems Overview</label><input type="text" id="p6_systems" value="client onboarding and transaction monitoring"></div>
+        <div><label for="p6_outsourcing">Outsourcing Arrangements</label><input type="text" id="p6_outsourcing" value="regulated vendor in the UAE"></div>
+        <div class="output-section" id="output-6"></div>
+    </div>
+
+    <div class="assessment-point">
+        <h2>7. Compliance/Financial Crime Arrangements</h2>
+        <div class="form-grid">
+            <div><label for="p7_co">Compliance Officer Name</label><input type="text" id="p7_co" value="Mr. Smith"></div>
+            <div><label for="p7_mlro">MLRO Name</label><input type="text" id="p7_mlro" value="Mr. Smith"></div>
+            <div><label for="p7_tools">Screening Tools Used</label><input type="text" id="p7_tools" value="WorldCheck"></div>
+        </div>
+        <div class="output-section" id="output-7"></div>
+    </div>
+
+    <div class="assessment-point">
+        <h2>8. Capital requirements and sources of wealth/funds</h2>
+        <div class="form-grid">
+            <div><label for="p8_capital">Capital Requirement</label><input type="text" id="p8_capital" value="$500,000"></div>
+            <div><label for="p8_sof">Source of Funds</label><input type="text" id="p8_sof" value="shareholder injection"></div>
+        </div>
+        <div class="output-section" id="output-8"></div>
+    </div>
+
+    <div class="assessment-point">
+        <h2>9. Any other disclosures/considerations</h2>
+        <div><label for="p9_disclosures">Disclosures (leave blank if none)</label><textarea id="p9_disclosures"></textarea></div>
+        <div class="output-section" id="output-9"></div>
+    </div>
+    
+    <div class="assessment-point">
+        <h2>10. Recommendation/IP conditions</h2>
+        <div><label for="p10_rec">Recommendation</label><input type="text" id="p10_rec" value="Approval with standard conditions"></div>
+        <div><label for="p10_cond">Conditions (leave blank if none)</label><input type="text" id="p10_cond" value="Satisfactory review of IT audit"></div>
+        <div class="output-section" id="output-10"></div>
     </div>
 
     <button id="generate-btn">Generate All Assessments</button>
@@ -110,9 +179,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     
     const generateBtn = document.getElementById('generate-btn');
-    
-    // IMPORTANT: Replace this with your actual Vercel API URL
-    const API_BASE_URL = 'https://dfsa.vercel.app'; 
+    const API_BASE_URL = 'https://dfsa.vercel.app'; // Your live API URL
 
     async function callApi(endpoint, body) {
         const outputDiv = document.getElementById(`output-${endpoint}`);
@@ -123,41 +190,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body),
             });
-            if (!response.ok) {
-                throw new Error(`API Error: ${response.statusText}`);
-            }
+            if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
             const data = await response.json();
-            // Remove markdown asterisks for better display in HTML
-            outputDiv.textContent = data.assessment_text.replace(/\*\*/g, ''); 
+            outputDiv.textContent = data.assessment_text ? data.assessment_text.replace(/\*\*/g, '') : 'No sentence generated.'; 
         } catch (error) {
             outputDiv.textContent = `Error: ${error.message}`;
-            console.error('API Call Failed:', error);
         }
     }
 
     generateBtn.addEventListener('click', () => {
-        // --- Point 1 Data ---
-        const p1_data = {
-            service_type: document.getElementById('p1_service_type').value,
-            prudential_cat: document.getElementById('p1_prudential_cat').value,
-            legal_status: document.getElementById('p1_legal_status').value,
-            clients: document.getElementById('p1_clients').value
-        };
-        callApi('1', p1_data);
-
-        // --- Point 2 Data ---
-        const p2_data = {
-            model_desc: document.getElementById('p2_model_desc').value,
-            markets: document.getElementById('p2_markets').value,
-            geo_scope: document.getElementById('p2_geo_scope').value,
-            // 'channels' field is optional, so we don't include it if empty
-        };
-        callApi('2', p2_data);
-
-        // --- Future calls for points 3-10 would go here ---
-        // For example:
-        // const p3_data = { ... };
-        // callApi('3', p3_data);
+        // Point 1
+        callApi('1', { service_type: document.getElementById('p1_service_type').value, prudential_cat: document.getElementById('p1_prudential_cat').value, legal_status: document.getElementById('p1_legal_status').value, clients: document.getElementById('p1_clients').value });
+        // Point 2
+        callApi('2', { model_desc: document.getElementById('p2_model_desc').value, markets: document.getElementById('p2_markets').value, geo_scope: document.getElementById('p2_geo_scope').value, channels: document.getElementById('p2_channels').value });
+        // Point 3
+        callApi('3', { structure: document.getElementById('p3_structure').value, parent_name: document.getElementById('p3_parent_name').value, parent_jurisdiction: document.getElementById('p3_parent_jurisdiction').value, controller_name: document.getElementById('p3_controller_name').value, controller_perc: document.getElementById('p3_controller_perc').value });
+        // Point 4
+        callApi('4', { key_individuals: document.getElementById('p4_key_individuals').value, experience_summary: document.getElementById('p4_experience').value });
+        // Point 5
+        callApi('5', { adverse_history: document.getElementById('p5_adverse_history').value, previous_regulators: document.getElementById('p5_previous_reg').value });
+        // Point 6
+        callApi('6', { systems_overview: document.getElementById('p6_systems').value, outsourcing_arrangements: document.getElementById('p6_outsourcing').value });
+        // Point 7
+        callApi('7', { compliance_officer: document.getElementById('p7_co').value, mlro: document.getElementById('p7_mlro').value, screening_tools: document.getElementById('p7_tools').value });
+        // Point 8
+        callApi('8', { capital_requirement: document.getElementById('p8_capital').value, source_of_funds: document.getElementById('p8_sof').value });
+        // Point 9
+        callApi('9', { disclosures: document.getElementById('p9_disclosures').value });
+        // Point 10
+        callApi('10', { recommendation: document.getElementById('p10_rec').value, conditions: document.getElementById('p10_cond').value });
     });
 });
 </script>
