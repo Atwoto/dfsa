@@ -12,7 +12,7 @@ key: str = os.environ.get("SUPABASE_KEY")
 supabase: Client = create_client(url, key)
 
 # Create the FastAPI app object
-app = FastAPI(title="10 Key Points Assessment API")
+app = FastAPI(title="10 Key Points Assessment API v1.1")
 
 # --- Add CORS Middleware ---
 app.add_middleware(
