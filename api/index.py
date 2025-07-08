@@ -1,7 +1,7 @@
 import os
 from fastapi import FastAPI
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from fastapi.middleware.cors import CORSMiddleware
 from supabase import create_client, Client
 
@@ -24,7 +24,6 @@ app.add_middleware(
 )
 
 # --- Re-usable Logic Functions (all 10) ---
-# (These functions are the same as before)
 def generate_sentence_1(service_type, prudential_cat, legal_status, clients):
     if not any([service_type, prudential_cat, legal_status, clients]): return None
     parts = [f"provide **{service_type}** services", f"under a **{prudential_cat}** Prudential classification", f"as a **{legal_status}**", f"targeting **{clients}** clients"]
@@ -115,10 +114,7 @@ def submit_full_assessment(assessment: FullAssessmentIn):
     Receives all form data, generates all 10 sentences,
     and saves the entire record to the Supabase database.
     """
-    # Create a dictionary of the inputs to save
     db_record = assessment.dict()
-
-    # Generate all sentences and add them to the record
     db_record['p1_output'] = generate_sentence_1(assessment.p1_service_type, assessment.p1_prudential_cat, assessment.p1_legal_status, assessment.p1_clients)
     db_record['p2_output'] = generate_sentence_2(assessment.p2_model_desc, assessment.p2_markets, assessment.p2_geo_scope, assessment.p2_channels)
     db_record['p3_output'] = generate_sentence_3(assessment.p3_structure, assessment.p3_parent_name, assessment.p3_parent_jurisdiction, assessment.p3_controller_name, assessment.p3_controller_perc)
@@ -131,12 +127,21 @@ def submit_full_assessment(assessment: FullAssessmentIn):
     db_record['p10_output'] = generate_sentence_10(assessment.p10_rec, assessment.p10_cond)
 
     try:
-        # Insert the completed record into the 'assessments' table
         supabase.table('assessments').insert(db_record).execute()
         return {"message": "Assessment submitted successfully!"}
     except Exception as e:
-        # Return a more specific error if possible
         return {"message": f"Error saving to database: {str(e)}"}
+
+@app.get("/assessments", tags=["Assessment Actions"])
+def get_all_assessments():
+    """
+    Retrieves all records from the assessments table.
+    """
+    try:
+        data, count = supabase.table('assessments').select('*').order('created_at', desc=True).execute()
+        return data[1] 
+    except Exception as e:
+        return {"error": str(e)}
 
 @app.get("/", summary="API Root", include_in_schema=False)
 async def read_root():

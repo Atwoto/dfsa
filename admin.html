@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Assessment Records</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 0; padding: 2rem; background-color: #f4f7f9; color: #333; }
+        .container { max-width: 900px; margin: auto; }
+        .assessment-record {
+            background: #fff;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        h1, h2 { color: #1a253c; }
+        h2 { border-bottom: 2px solid #e1e8f0; padding-bottom: 10px; }
+        .assessment-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+        .assessment-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            vertical-align: top;
+        }
+        .assessment-table td:first-child {
+            font-weight: 600;
+            width: 40%;
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>All Assessment Records</h1>
+    <div id="records-container">
+        <p>Loading records...</p>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    const API_BASE_URL = 'https://dfsa.vercel.app'; // Your live API URL
+    const recordsContainer = document.getElementById('records-container');
+
+    // An array holding the names of the 10 key points
+    const keyPoints = [
+        "Financial Services, endorsements, prudential category, Legal Status and proposed clients",
+        "Business overview",
+        "Who controls",
+        "Who will run the business?",
+        "Background checks/other regulators",
+        "Systems and controls",
+        "Compliance/Financial Crime arrangements",
+        "Capital requirements and sources of wealth/funds",
+        "Any other disclosures/considerations",
+        "Recommendation/IP conditions"
+    ];
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/assessments`);
+        if (!response.ok) {
+            throw new Error('Failed to load data from the API.');
+        }
+        const records = await response.json();
+
+        if (!records || records.length === 0) {
+            recordsContainer.innerHTML = '<p>No assessment records found.</p>';
+            return;
+        }
+
+        // Clear the "Loading..." message
+        recordsContainer.innerHTML = '';
+
+        // Loop through each record and create a detailed table for it
+        records.forEach(record => {
+            const recordDiv = document.createElement('div');
+            recordDiv.className = 'assessment-record';
+
+            let tableHTML = `
+                <h2>Applicant: ${record.applicant_name || 'N/A'}</h2>
+                <table class="assessment-table">
+                    <tbody>
+            `;
+
+            // Create a row for each of the 10 key points
+            for (let i = 0; i < 10; i++) {
+                const pointIndex = i + 1;
+                const pointName = keyPoints[i];
+                const pointOutput = record[`p${pointIndex}_output`] ? record[`p${pointIndex}_output`].replace(/\*\*/g, '') : 'N/A';
+                
+                tableHTML += `
+                    <tr>
+                        <td>${pointName}</td>
+                        <td>${pointOutput}</td>
+                    </tr>
+                `;
+            }
+
+            tableHTML += '</tbody></table>';
+            recordDiv.innerHTML = tableHTML;
+            recordsContainer.appendChild(recordDiv);
+        });
+
+    } catch (error) {
+        recordsContainer.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+    }
+});
+</script>
+
+</body>
+</html>
