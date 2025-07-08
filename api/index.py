@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import Optional
+from fastapi.middleware.cors import CORSMiddleware
 
 # Create the FastAPI app object
 app = FastAPI(
@@ -8,6 +9,22 @@ app = FastAPI(
     description="An API to generate standardized assessment sentences based on input data.",
     version="1.0.0",
 )
+
+# --- Add CORS Middleware ---
+# This allows your web form to call the API from a different domain.
+origins = [
+    "*", # This allows all origins, which is fine for a demo.
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"], # Allows all methods (GET, POST, etc.)
+    allow_headers=["*"], # Allows all headers
+)
+# --- End of CORS section ---
+
 
 # --- Re-usable Logic Functions ---
 
@@ -21,6 +38,7 @@ def generate_sentence_1(service_type, prudential_cat, legal_status, clients):
     if clients: parts.append(f"targeting **{clients}** clients")
     return "The firm is seeking authorization to " + ", ".join(parts) + "."
 
+# ... (all your other generate_sentence functions go here) ...
 def generate_sentence_2(model_desc, markets, geo_scope, channels):
     if not model_desc: return None
     parts = [f"a **{model_desc}**"]
@@ -86,6 +104,7 @@ def generate_sentence_10(recommendation, conditions):
     if conditions: sentence += f" This is subject to the following conditions: **{conditions}**."
     return sentence
 
+
 # --- Pydantic Models for Input Data Validation ---
 
 class SentenceResponse(BaseModel):
@@ -140,7 +159,7 @@ class Point10In(BaseModel):
 
 # --- API Endpoints ---
 
-@app.get("/", summary="API Root")
+@app.get("/", summary="API Root", include_in_schema=False)
 async def read_root():
     return {"message": "Welcome to the 10 Key Points Assessment API. Go to /docs for details."}
 
